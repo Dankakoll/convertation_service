@@ -1,0 +1,14 @@
+version: '3.9'
+services:
+  usersession:
+    image: redis:latest
+    container_name: VAL_DB
+    restart: always 
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning --requirepass pass 
+    volumes:
+      - ./db:/data
+volumes:
+  usersession:
+    driver: local
