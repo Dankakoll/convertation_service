@@ -1,0 +1,134 @@
+{
+    "produces": [
+        "application/json"
+    ],
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Convertation_service for sources RU,TH",
+        "title": "Swagger Convertation_service API",
+        "contact": {},
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.htm"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/getAll": {
+            "get": {
+                "description": "Получить все валюты из источника. Если источник не указан, берутся данные из источника по умолчанию (ЦБ РФ)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GetAll"
+                ],
+                "summary": "Получить все валюты",
+                "operationId": "getAll",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "source",
+                        "name": "source",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/domain.CurrModel"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "domain.CurrModel": {
+            "type": "object",
+            "properties": {
+                "Code": {
+                    "description": "Код валюты",
+                    "type": "string"
+                },
+                "Name": {
+                    "description": "Полное название на языке из источника",
+                    "type": "string"
+                },
+                "RatioBuy": {
+                    "description": "Курс покупки",
+                    "type": "string"
+                },
+                "RatioSell": {
+                    "description": "Курс продажи",
+                    "type": "string"
+                },
+                "date": {
+                    "description": "Дата получения валюты",
+                    "type": "string"
+                }
+            }
+        },
+        "handler.Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "Код ответа",
+                    "type": "integer"
+                },
+                "data": {
+                    "description": "Данные",
+                    "type": "array",
+                    "items": {}
+                },
+                "message": {
+                    "description": "Сообщение для пользователя",
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

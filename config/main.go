@@ -12,15 +12,15 @@ import (
 // Здесь находится вся нужная информация для корректной работы приложения
 type AppConfig struct {
 	//Ключи доступа к источникам
-	Source_keys map[string]string
+	SourceKeys map[string]string
 	//Ссылки на источники
-	Source_links map[string]string
+	SourceLinks map[string]string
 	//Ссылка на подключение к бд
-	Dburl string
+	DbUrl string
 	//Коды источников
 	Sources []string
 	//Времена обновления источников
-	Source_updates map[string]string
+	SourceUpdates map[string]string
 	//Локация времени
 	Loc *time.Location
 	//Время задержки обновления
@@ -32,14 +32,14 @@ type AppConfig struct {
 // Создание нового конфига. Достает данные из конфигурационного файла и использует методы getEnv* того же пакета
 func NewAppConfig() *AppConfig {
 	return &AppConfig{
-		Source_keys:    getEnvWithPattern("SOURCE_KEY", map[string]string{"RU": "", "TH": ""}),
-		Source_links:   getEnvWithPattern("SOURCE_LINK", map[string]string{"RU": "", "TH": ""}),
-		Dburl:          getEnv("DB_URL", ""),
-		Sources:        []string{"RU", "TH"},
-		Loc:            getEnvAsLoc("LOC", &time.Location{}),
-		Source_updates: getEnvWithPattern("SOURCE_TIMES", map[string]string{"RU": "00:00:00", "TH": "18:00:00"}),
-		TimeoutUP:      getEnvAsInt("TIMEOUT_UP", 600),
-		TimeoutREQ:     getEnvAsInt("TIMEOUT_REQ", 20),
+		SourceKeys:    getEnvWithPattern("SOURCE_KEY", map[string]string{"RU": "", "TH": ""}),
+		SourceLinks:   getEnvWithPattern("SOURCE_LINK", map[string]string{"RU": "", "TH": ""}),
+		DbUrl:         getEnv("DB_URL", ""),
+		Sources:       []string{"RU", "TH"},
+		Loc:           getEnvAsLoc("LOC", &time.Location{}),
+		SourceUpdates: getEnvWithPattern("SOURCE_TIMES", map[string]string{"RU": "00:00:00", "TH": "18:00:00"}),
+		TimeoutUP:     getEnvAsInt("TIMEOUT_UP", 600),
+		TimeoutREQ:    getEnvAsInt("TIMEOUT_REQ", 20),
 	}
 }
 
@@ -77,9 +77,9 @@ func getEnvAsLoc(key string, defaultVal *time.Location) *time.Location {
 }
 
 func (app *AppConfig) ParseTime(source string) time.Time {
-	time_in, err := time.ParseInLocation(time.TimeOnly, app.Source_updates[source], app.Loc)
+	time_in, err := time.ParseInLocation(time.TimeOnly, app.SourceUpdates[source], app.Loc)
 	if err != nil {
-		log.Fatalf("Wrong date in source " + source + ". Write it in format hh:mm:ss")
+		log.Fatalf("%s", "Wrong date in source "+source+". Write it in format hh:mm:ss")
 	}
 	return time_in
 }

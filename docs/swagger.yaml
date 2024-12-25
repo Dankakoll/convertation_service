@@ -1,0 +1,90 @@
+basePath: /
+definitions:
+  domain.CurrModel:
+    properties:
+      Code:
+        description: Код валюты
+        type: string
+      Name:
+        description: Полное название на языке из источника
+        type: string
+      RatioBuy:
+        description: Курс покупки
+        type: string
+      RatioSell:
+        description: Курс продажи
+        type: string
+      date:
+        description: Дата получения валюты
+        type: string
+    type: object
+  handler.Response:
+    properties:
+      code:
+        description: Код ответа
+        type: integer
+      data:
+        description: Данные
+        items: {}
+        type: array
+      message:
+        description: Сообщение для пользователя
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Convertation_service for sources RU,TH
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.htm
+  title: Swagger Convertation_service API
+  version: "1.0"
+paths:
+  /getAll:
+    get:
+      consumes:
+      - application/json
+      description: Получить все валюты из источника. Если источник не указан, берутся
+        данные из источника по умолчанию (ЦБ РФ)
+      operationId: getAll
+      parameters:
+      - description: source
+        in: path
+        name: source
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/domain.CurrModel'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Получить все валюты
+      tags:
+      - GetAll
+produces:
+- application/json
+schemes:
+- http
+swagger: "2.0"

@@ -1,7 +1,7 @@
 version: '2.24.0'
 services:
   server:
-    env_file: ./app/config.env
+    env_file: ./config/config.env
     build:
      context: .
      target: final
@@ -16,7 +16,7 @@ services:
     command:
         redis-server --save 20 1 --loglevel warning --requirepass pass --port 6379
     volumes:
-      - ./db:/data
+      - ./internal/pkg/domain/db:/data
 volumes:
   usersession:
     driver: local
