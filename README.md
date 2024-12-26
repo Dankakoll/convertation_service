@@ -49,6 +49,36 @@ Convertation_service for sources RU,TH
 
 **License:** [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0.htm)
 
+### /convert
+
+#### GET
+##### Summary:
+
+Конвертация валют
+
+##### Description:
+
+Конвертация валют в зависимости от источника, требуется предоставление двух кодов валют, суммы конвертации, и курса обмена.
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| source | path | source | Yes | string |
+| first | path | first | Yes | string |
+| second | path | second | Yes | string |
+| amount | path | amount | Yes | string |
+| exchange | path | exchange | Yes | string |
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | OK | [handler.Response](#handler.Response) & object |
+| 400 | Bad Request | [handler.Response](#handler.Response) |
+| 404 | Not Found | [handler.Response](#handler.Response) |
+| 500 | Internal Server Error | [handler.Response](#handler.Response) |
+
 ### /getAll
 
 #### GET
@@ -77,6 +107,18 @@ Convertation_service for sources RU,TH
 
 ### Models
 
+
+#### api.ConvertResponse
+
+| Name | Type | Description | Required |
+| ---- | ---- | ----------- | -------- |
+| amount | string |  | No |
+| converted_amount | string |  | No |
+| date | string |  | No |
+| exchange | string |  | No |
+| first_curr | string |  | No |
+| second_curr | string |  | No |
+| source | string |  | No |
 
 #### domain.CurrModel
 

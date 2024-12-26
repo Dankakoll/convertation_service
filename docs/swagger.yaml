@@ -1,5 +1,22 @@
 basePath: /
 definitions:
+  api.ConvertResponse:
+    properties:
+      amount:
+        type: string
+      converted_amount:
+        type: string
+      date:
+        type: string
+      exchange:
+        type: string
+      first_curr:
+        type: string
+      second_curr:
+        type: string
+      source:
+        type: string
+    type: object
   domain.CurrModel:
     properties:
       Code:
@@ -41,6 +58,62 @@ info:
   title: Swagger Convertation_service API
   version: "1.0"
 paths:
+  /convert:
+    get:
+      description: Конвертация валют в зависимости от источника, требуется предоставление
+        двух кодов валют, суммы конвертации, и курса обмена.
+      operationId: Convert
+      parameters:
+      - description: source
+        in: path
+        name: source
+        required: true
+        type: string
+      - description: first
+        in: path
+        name: first
+        required: true
+        type: string
+      - description: second
+        in: path
+        name: second
+        required: true
+        type: string
+      - description: amount
+        in: path
+        name: amount
+        required: true
+        type: string
+      - description: exchange
+        in: path
+        name: exchange
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/api.ConvertResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Конвертация валют
+      tags:
+      - handlerConvert
   /getAll:
     get:
       consumes:

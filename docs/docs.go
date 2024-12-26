@@ -23,6 +23,91 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/convert": {
+            "get": {
+                "description": "Конвертация валют в зависимости от источника, требуется предоставление двух кодов валют, суммы конвертации, и курса обмена.",
+                "tags": [
+                    "handlerConvert"
+                ],
+                "summary": "Конвертация валют",
+                "operationId": "Convert",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "source",
+                        "name": "source",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "first",
+                        "name": "first",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "second",
+                        "name": "second",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "amount",
+                        "name": "amount",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "exchange",
+                        "name": "exchange",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/api.ConvertResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/getAll": {
             "get": {
                 "description": "Получить все валюты из источника. Если источник не указан, берутся данные из источника по умолчанию (ЦБ РФ)",
@@ -91,6 +176,32 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.ConvertResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "converted_amount": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "exchange": {
+                    "type": "string"
+                },
+                "first_curr": {
+                    "type": "string"
+                },
+                "second_curr": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.CurrModel": {
             "type": "object",
             "properties": {

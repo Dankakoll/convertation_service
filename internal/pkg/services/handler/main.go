@@ -101,9 +101,8 @@ func (ah *APIHandler) ExitConnectWithDb(mainCtx context.Context) error {
 // Convert godoc
 // @Summary 	Конвертация валют
 // @Description Конвертация валют в зависимости от источника, требуется предоставление двух кодов валют, суммы конвертации, и курса обмена.
-// @ID 			convert
-// @Produce  	json
-// @Tags 		Convert
+// @Tags 		handlerConvert
+// @ID 			Convert
 // @Param 		source 		path 	string 		true 	"source"
 // @Param 		first 		path 	string 		true 	"first"
 // @Param 		second 		path 	string 		true 	"second"
@@ -113,8 +112,7 @@ func (ah *APIHandler) ExitConnectWithDb(mainCtx context.Context) error {
 // @Failure 	400 	  {object}  handler.Response
 // @Failure 	404 	  {object}  handler.Response
 // @Failure		500 	  {object} 	handler.Response
-// @Router 		/convert [get]
-
+// @Router 		/convert   [get]
 func (ah *APIHandler) convert(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", `application/json`)
 	var resp Response
