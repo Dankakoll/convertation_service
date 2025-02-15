@@ -214,7 +214,7 @@ func (a *API) NewOrUpdateCurr(source string, curr string, currencyDate time.Time
 // Проверка правильности ввода запроса для метода `/convert`
 // нужны параметры источника, первой и второй валюты, номинала и курса.
 // Возвращает ошибку если какого то параметра не хватает или формат неверен (порядок не важен)
-func (a *API) checkQuery(source string, first string, second string, amount string, exchange string) (err error) {
+func (a *API) checkQuery(first string, second string, amount string, exchange string) (err error) {
 	var exchangeTypes = []string{"buy", "sell"}
 	// Неверно указан курс валют
 	if !slices.Contains(exchangeTypes, exchange) {
@@ -328,19 +328,19 @@ func (a *API) Convert(source string, first string, second string, amount string,
 	defaultMessage := "In Convert error occured in method %s. Error: %s"
 	defaulterr := errors.New("cannot provide now convert. try again later")
 	//Проверка на правильность ввода
-	err = a.checkQuery(source, first, second, amount, exchange)
+	err = a.checkQuery(first, second, amount, exchange)
 	if err != nil {
 		return nil, err
 	}
 	firstDTO, firstRatio, err := a.checkNameFromSource(source, first, exchange)
 	if err != nil {
 		logger.Printf(defaultMessage, "API.checkNameFromSource", err.Error())
-		return nil, err
+		return nil, defaulterr
 	}
 	secondDTO, secondRatio, err := a.checkNameFromSource(source, second, exchange)
 	if err != nil {
 		logger.Printf(defaultMessage, "API.checkNameFromSource", err.Error())
-		return nil, err
+		return nil, defaulterr
 	}
 	amountParsed, err := strconv.ParseFloat(strings.Replace(amount, ",", ".", 1), 64)
 	if err != nil {

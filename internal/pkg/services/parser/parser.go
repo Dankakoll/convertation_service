@@ -103,7 +103,7 @@ func (p *Parser) ParseCurrtoDTO(newCurr interface{}, source string) (dom []domai
 			newDate := splt[2] + "-" + splt[1] + "-" + splt[0]
 			//Случай получения пустых данных
 			if len(newDate) == 0 {
-				logger.Printf("Nil data in source RU. err: " + err.Error())
+				logger.Println("Nil data in source RU")
 				return []domain.CurrModel{}, errors.New("parsed nil data from source RU. abort")
 			}
 			for _, curr := range RUDTO.Valute {
@@ -148,10 +148,6 @@ func (p *Parser) ParseCurrtoDTO(newCurr interface{}, source string) (dom []domai
 			dom = append(dom, domain.ToCurrModel(THDTO.Period, SourceTH,
 				THDTO.CurrencyID, THDTO.CurrencyNameEng,
 				THDTO.BuyingTransfer, THDTO.Selling))
-			if err != nil {
-				logger.Println("Error occured while updating currency " + THDTO.CurrencyNameEng + "in source TH. Err:" + err.Error())
-				return []domain.CurrModel{}, errors.New("error occured while updating currency " + THDTO.CurrencyNameEng + "in source TH. abort")
-			}
 		}
 	default:
 		return dom, errors.New("wrong source " + source + " provided")
