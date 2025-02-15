@@ -116,7 +116,7 @@ Convertation_service for sources RU,TH
 }
 ```
 
-### /getAll
+### /getall
 
 #### GET
 ##### Summary:
@@ -171,7 +171,7 @@ Convertation_service for sources RU,TH
 ```
 ##### Wrong Request
 ```
-/getal?source=ABCD
+/getall?source=ABCD
 ```
 
 ##### Error response
