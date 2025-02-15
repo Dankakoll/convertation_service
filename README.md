@@ -16,22 +16,25 @@ docker compose up --build -d
 ```
 ### Доступ
 
-Доступ производится по порту 8080, подлкючение к бд инициировать в ссылке через db:6379 (см compose.yaml)  
+Доступ производится по порту 8080, подключение к бд инициировать в ссылке через db:6379 (см docker-compose.yaml)  
 
 ### Дальнейший запуск
 ```sh
 docker compose up -d 
 ```
 ## Переменные окружения
-LOC - локация времени обновления данных  (оставить по умолчанию Asia/Bangkok)
-SOURCES - коды источников (вписаны в config.go)
-SOURCE_LINK_(RU,TH) - ссылки источников (обязательны)
-SOURCE_KEY_(RU,TH) - ключи доступа к источникам (обязательны)
-DB_URL - ссылка подключения к бд в контейнере (обязателена)
-TIMEOUT_UP - время задержки обновления данных (по умолчанию 600 с)
-TIMEOUT_REQ - время задержки обновления данных (по умолчанию 20 с)
+| Название |  Описание |
+| ----     | ---------- |
+|LOC| | Локация времени обновления данных  (оставить по умолчанию Asia/Bangkok)|
+|SOURCES| коды источников (вписаны в config.go)|
+|SOURCE_LINK_(RU,TH)| - ссылки источников (обязательны)
+|SOURCE_KEY_(RU,TH)| - ключи доступа к источникам (обязательны)|
+|DB_URL | ссылка подключения к бд в контейнере (обязателена)|
+|TIMEOUT_UP | время задержки обновления данных (по умолчанию 600 с)|
+|TIMEOUT_REQ | время задержки обновления данных (по умолчанию 20 с)|
+|DB_ATT| количество попыток подключений к БД
 
-#Документация
+# Документация
 Генерируется кодом
 
 ```sh
@@ -78,6 +81,40 @@ Convertation_service for sources RU,TH
 | 400 | Bad Request | [handler.Response](#handler.Response) |
 | 404 | Not Found | [handler.Response](#handler.Response) |
 | 500 | Internal Server Error | [handler.Response](#handler.Response) |
+##### Examples
+##### Request
+```
+/convert?source=TH&first=RUB&second=USD&amount=1000&exchange=buy
+```
+##### Successfull Response
+```
+{
+  "code": 200,
+  "message": "Conversion successful",
+  "data": [
+    {
+      "date": "2025-02-14",
+      "source": "RU",
+      "first_curr": "RUB",
+      "second_curr": "USD",
+      "exchange": "buy",
+      "amount": "1000",
+      "converted_amount": "10.985"
+    }
+  ]
+}
+```
+##### Wrong Request
+```
+/convert?source=ABCD&first=RUB&second=USD&amount=1000&exchange=buy
+```
+##### Error Response
+```
+{
+  "code": 400,
+  "message": "wrong source ABCD provided"
+}
+```
 
 ### /getAll
 
@@ -104,7 +141,46 @@ Convertation_service for sources RU,TH
 | 400 | Bad Request | [handler.Response](#handler.Response) |
 | 404 | Not Found | [handler.Response](#handler.Response) |
 | 500 | Internal Server Error | [handler.Response](#handler.Response) |
+##### Examples
+##### Request
+```
+/getall?source=RU
+```
+##### Succsesfull  response
+```
+{
+  "code": 200,
+  "message": "Getting all queries from source RU successful",
+  "data": [
+    [
+      {
+        "date": "2025-02-14",
+        "code": "UAH",
+        "name": "Гривен",
+        "ratio_buy": "2,17816",
+        "ratio_sell": "2,17816"
+      },
+      {
+      ...
+      }
+      ...
+	  }
+  ]
+ ]
+}
+```
+##### Wrong Request
+```
+/getal?source=ABCD
+```
 
+##### Error response
+```
+{
+  "code": 500,
+  "message": "wrong source provided"
+}
+```
 ### Models
 
 

@@ -17,7 +17,7 @@ package main
 // @license.url   http://www.apache.org/licenses/LICENSE-2.0.htm
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log"
 	"main/config"
 	_ "main/docs"
@@ -31,6 +31,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const ver = "3"
+
 func main() {
 	AppConfig := config.NewAppConfig()
 	//Инициализация сервера c контекстом. В контекст будет послан сигнал о выключении
@@ -43,40 +45,52 @@ func main() {
 			return mainCtx
 		},
 	}
-
-	go httpServer.ListenAndServe()
-
-	log.Printf("Starting")
+	log.Println("Starting API, Handler and DB service. Version:", ver)
 
 	//Инициализация  апи хендлера
-	APIHandler := handler.InitHandler(AppConfig, mainCtx)
-
+	APIHandler, err := handler.InitHandler(AppConfig, mainCtx)
+	//Если произошла ошибка на инициализации
+	if err != nil {
+		log.Println("Error in intializing. Stopping immediatly. Check logs")
+		os.Exit(1)
+	}
 	//Graceful shutdown
+	stop_db := make(chan bool, 1)
 	g, _ := errgroup.WithContext(mainCtx)
 	//Горутина для выключения
-
-	// Запуск горутины обновления данных
-	g.Go(func() error {
-		return APIHandler.StartUpdate(AppConfig, mainCtx)
-	})
-
-	//Запуск горутины отключения от бд
-	g.Go(func() error {
-		<-mainCtx.Done()
-		return APIHandler.ExitConnectWithDb(mainCtx)
-	})
-
+	go APIHandler.StartUpdate(AppConfig, mainCtx)
 	// Запуск сервера
-
+	go func() {
+		err := httpServer.ListenAndServe()
+		//Если произошла ошибка при включении
+		if !errors.Is(err, http.ErrServerClosed) && err != nil {
+			log.Print("Error in working process. Starting shutdown")
+			stop()
+		}
+	}()
 	//Выключение сервера
 	g.Go(func() error {
 		//Если в канал контекста послан сигнал Sigterm
 		<-mainCtx.Done()
-		return httpServer.Shutdown(mainCtx)
+		// Посылаем сигнал к бд
+		log.Printf("Gracefully stopping server")
+		shutdown_ctx, cancel := context.WithCancel(mainCtx)
+		defer cancel()
+		httpServer.Shutdown(shutdown_ctx)
+		stop_db <- true
+		return http.ErrServerClosed
 	})
-	//Если послан сигнал о выключении
+	// Сначала отключаем сервер потом подключения к бд
+	go func() error {
+		for {
+			for range stop_db {
+				log.Printf("Gracefully stopping database")
+				return APIHandler.ExitConnectWithDb(mainCtx)
+			}
+		}
+	}()
 	if err := g.Wait(); err != nil {
-		fmt.Printf("exit reason: %s \n", err)
+		log.Printf("exit reason: %s", err)
 	}
 
 }

@@ -9,25 +9,25 @@ type CurrModel struct {
 	//Источник
 	Source string `redis:"Source" json:"-"`
 	//Код валюты
-	Code string `redis:"Code" json:"Code"`
+	Code string `redis:"Code" json:"code"`
 	//Полное название на языке из источника
-	Name string `redis:"Name" json:"Name"`
+	Name string `redis:"Name" json:"name"`
 	//Курс покупки
-	RatioBuy string `redis:"RatioBuy" json:"RatioBuy"`
+	RatioBuy string `redis:"RatioBuy" json:"ratio_buy"`
 	//Курс продажи
-	RatioSell string `redis:"RatioSell" json:"RatioSell"`
+	RatioSell string `redis:"RatioSell" json:"ratio_sell"`
 }
 
 //Приведение к сущности валюты
-func ToCurrModel(Date string, source string, code string, name string, RatioBuy string, RatioSell string) CurrModel {
-	CurrModel := new(CurrModel)
-	CurrModel.Date = Date
-	CurrModel.Source = source
-	CurrModel.Code = code
-	CurrModel.Name = name
-	CurrModel.RatioBuy = RatioBuy
-	CurrModel.RatioSell = RatioSell
-	return *CurrModel
+func ToCurrModel(date string, source string, code string, name string, ratioBuy string, ratioSell string) CurrModel {
+	return CurrModel{
+		Date:      date,
+		Source:    source,
+		Code:      code,
+		Name:      name,
+		RatioBuy:  ratioBuy,
+		RatioSell: ratioSell,
+	}
 }
 
 // Сервис бд
@@ -51,5 +51,5 @@ type DatabaseHandler struct {
 
 // Создание хендлера бд. Нужна реализация интерфейса DatabaseService
 func NewDatabaseHandler(svc DatabaseService) *DatabaseHandler {
-	return &DatabaseHandler{svc}
+	return &DatabaseHandler{Service: svc}
 }

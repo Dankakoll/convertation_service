@@ -14,18 +14,19 @@ import (
 
 // Репозиторий хранения данных в бд Redis
 type CurrModelRepository struct {
-	conn *redis.Client
+	conn       *redis.Client
+	maxRetries int
 }
 
 // Создание нового репозитория. Нужен клиент redis
-func NewCurrModelRepository(conn *redis.Client) *CurrModelRepository {
-	return &CurrModelRepository{conn}
+func NewCurrModelRepository(conn *redis.Client, maxRetries int) *CurrModelRepository {
+	return &CurrModelRepository{conn, maxRetries}
 }
 
 // Проверка подключения. Если клиент отключен от бд, будет проведено переподключение к бд с таймаутом 1 секунда
 func (r *CurrModelRepository) checkConn(ctx context.Context) error {
 	if err := r.conn.Ping(ctx).Err(); err != nil {
-		err = r.Reconnect(r.conn.Options().DialTimeout, ctx)
+		err = r.Reconnect(r.conn.Options().DialTimeout, ctx, r.maxRetries)
 		if err != nil {
 			return err
 		}
@@ -56,10 +57,10 @@ func (r *CurrModelRepository) GetAllBySource(ctx context.Context, source string)
 		return res, err
 	}
 	var vals domain.CurrModel
+	if err := r.checkConn(ctx); err != nil {
+		return res, err
+	}
 	for _, v := range keys {
-		if err := r.checkConn(ctx); err != nil {
-			return res, err
-		}
 		err := r.conn.HGetAll(ctx, v).Scan(&vals)
 		if err != nil {
 			return res, err
@@ -88,7 +89,7 @@ func (r *CurrModelRepository) Close(ctx context.Context) (err error) {
 }
 
 // Reconnect переподключает к бд с интервалом 1 секунда. Прерывается и возвращает ненулевую ошибку при закрытии контекста.
-func (r *CurrModelRepository) Reconnect(timeWait time.Duration, ctx context.Context) (err error) {
+func (r *CurrModelRepository) Reconnect(timeWait time.Duration, ctx context.Context, maxRetries int) (err error) {
 	logger := log.New(os.Stdout, "Reconnect ", log.LstdFlags)
 	logger.Printf("Checking connect")
 	err = r.conn.Ping(ctx).Err()
@@ -99,10 +100,10 @@ func (r *CurrModelRepository) Reconnect(timeWait time.Duration, ctx context.Cont
 		for range ticker.C {
 			select {
 			case <-ctx.Done():
-				logger.Print("Gracefully stopping Reconnect")
+				logger.Print("Gracefully stopping")
 				return errors.New("exiting")
 			default:
-				if attempt > r.conn.Options().MaxRetries {
+				if attempt > maxRetries {
 					logger.Printf("%s", "Cannot connect to db after"+strconv.FormatInt(int64(attempt), 10)+" attempt. Will try again later")
 					return errors.New("no connect with db now")
 				}

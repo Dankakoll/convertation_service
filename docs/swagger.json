@@ -201,24 +201,24 @@
         "domain.CurrModel": {
             "type": "object",
             "properties": {
-                "Code": {
+                "code": {
                     "description": "Код валюты",
-                    "type": "string"
-                },
-                "Name": {
-                    "description": "Полное название на языке из источника",
-                    "type": "string"
-                },
-                "RatioBuy": {
-                    "description": "Курс покупки",
-                    "type": "string"
-                },
-                "RatioSell": {
-                    "description": "Курс продажи",
                     "type": "string"
                 },
                 "date": {
                     "description": "Дата получения валюты",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Полное название на языке из источника",
+                    "type": "string"
+                },
+                "ratio_buy": {
+                    "description": "Курс покупки",
+                    "type": "string"
+                },
+                "ratio_sell": {
+                    "description": "Курс продажи",
                     "type": "string"
                 }
             }

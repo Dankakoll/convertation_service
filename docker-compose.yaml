@@ -1,0 +1,22 @@
+version: '2.24.0'
+services:
+  server:
+    env_file: ./config/config.env
+    build:
+     context: .
+     target: final
+    ports:
+     - "8080:8080"
+  db:
+    image: redis:latest
+    container_name: VAL_DB
+    restart: unless-stopped
+    ports:
+     - "6380:6379"
+    command:
+        redis-server --save 20 1 --loglevel warning --requirepass pass --port 6379
+    volumes:
+      - ./deploy/db:/data
+volumes:
+  usersession:
+    driver: local
