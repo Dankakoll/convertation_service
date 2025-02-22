@@ -27,8 +27,8 @@ docker compose up -d
 | ----     | ---------- |
 |LOC |  локация времени обновления данных  (оставить по умолчанию Asia/Bangkok)|
 |SOURCES| коды источников (вписаны в config.go)|
-|SOURCE_LINK_(RU,TH)| - ссылки источников (обязательны)
-|SOURCE_KEY_(RU,TH)| - ключи доступа к источникам (обязательны)|
+|SOURCE_LINK_(RU,TH)| ссылки источников (обязательны)
+|SOURCE_KEY_(RU,TH)| ключи доступа к источникам (обязательны)|
 |DB_URL | ссылка подключения к бд в контейнере (обязателена)|
 |TIMEOUT_UP | время задержки обновления данных (по умолчанию 600 с)|
 |TIMEOUT_REQ | время задержки обновления данных (по умолчанию 20 с)|
@@ -84,7 +84,7 @@ Convertation_service for sources RU,TH
 ##### Examples
 ##### Request
 ```
-/convert?source=TH&first=RUB&second=USD&amount=1000&exchange=buy
+http://127.0.0.1:8080/convert?source=TH&first=RUB&second=USD&amount=1000&exchange=buy
 ```
 ##### Successfull Response
 ```
@@ -93,20 +93,20 @@ Convertation_service for sources RU,TH
   "message": "Conversion successful",
   "data": [
     {
-      "date": "2025-02-14",
+      "date": "2025-02-20",
       "source": "RU",
       "first_curr": "RUB",
       "second_curr": "USD",
       "exchange": "buy",
       "amount": "1000",
-      "converted_amount": "10.985"
+      "converted_amount": "11.157763433929"
     }
   ]
 }
 ```
 ##### Wrong Request
 ```
-/convert?source=ABCD&first=RUB&second=USD&amount=1000&exchange=buy
+http://127.0.0.1:8080/convert?source=ABCD&first=RUB&second=USD&amount=1000&exchange=buy
 ```
 ##### Error Response
 ```
@@ -144,7 +144,7 @@ Convertation_service for sources RU,TH
 ##### Examples
 ##### Request
 ```
-/getall?source=RU
+http://127.0.0.1:8080/getall?source=RU
 ```
 ##### Succsesfull  response
 ```
@@ -154,11 +154,11 @@ Convertation_service for sources RU,TH
   "data": [
     [
       {
-        "date": "2025-02-14",
-        "code": "UAH",
-        "name": "Гривен",
-        "ratio_buy": "2,17816",
-        "ratio_sell": "2,17816"
+        "date": "2025-02-22",
+        "code": "BYN",
+        "name": "Белорусский рубль",
+        "ratio_buy": "27,4914",
+        "ratio_sell": "27,4914"
       },
       {
       ...
@@ -171,7 +171,7 @@ Convertation_service for sources RU,TH
 ```
 ##### Wrong Request
 ```
-/getall?source=ABCD
+http://127.0.0.1:8080/getall?source=ABCD
 ```
 
 ##### Error response
