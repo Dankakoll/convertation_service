@@ -42,7 +42,7 @@ func NewFetcher(lastUpdate time.Time, timeLoc *time.Location, timeout int) *Fetc
 const userAgent = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11`
 
 // Добавление нужных заголовков к запросу в зависимости от источника
-func (f *Fetcher) reqBySource(source string, curr string, sourceKeys map[string]string, sourceLinks map[string]string) (*http.Request, error) {
+func (f *Fetcher) reqBySource(source string, sourceKeys map[string]string, sourceLinks map[string]string) (*http.Request, error) {
 	t := time.Now().In(f.timeLoc)
 	var ctx = context.Background()
 	req, err := http.NewRequestWithContext(ctx, "GET", sourceLinks[source], nil)
@@ -66,8 +66,9 @@ func (f *Fetcher) reqBySource(source string, curr string, sourceKeys map[string]
 			lastup := f.lastUpdate
 			startPeriod := lastup.Format(time.DateOnly)
 			endPeriod := t.Format(time.DateOnly)
-			req.URL.RawQuery = "start_period=" + startPeriod +
-				"&end_period=" + endPeriod + "&currency=" + curr
+			queryStartPeriod := "start_period=" + startPeriod
+			queryEndPeriod := "&end_period=" + endPeriod
+			req.URL.RawQuery = queryStartPeriod + queryEndPeriod
 		}
 	}
 	return req, nil
@@ -77,7 +78,7 @@ func (f *Fetcher) reqBySource(source string, curr string, sourceKeys map[string]
 func (f *Fetcher) errBodyBySource(source string, body []byte) string {
 	var ErrBody string
 	switch source {
-	/* Для источника ЦБ Тайланд*/
+	// Для источника ЦБ Тайланд
 	case SourceTH:
 		{
 			var RespErr map[string][]interface{}
@@ -97,12 +98,12 @@ func (f *Fetcher) errBodyBySource(source string, body []byte) string {
 
 // GetCurrfromSource отправляет GET-запрос по ссылке для конкретного источника и конкретной валюты (если нужно, добавить ключи доступа).
 // Возвращает ненулевую ошибку при получении статуса запроса не OK
-func (f *Fetcher) GetCurrfromSource(source string, curr string, sourceKeys map[string]string, sourceLinks map[string]string) (body []byte, err error) {
+func (f *Fetcher) FetchAllfromSource(source string, sourceKeys map[string]string, sourceLinks map[string]string) (body []byte, err error) {
 	// Проверка на время обновления данных
 	t := time.Now().In(f.timeLoc)
 	timeout := time.Duration(f.timeout) * time.Second
 	httpClient := &http.Client{Timeout: timeout}
-	req, err := f.reqBySource(source, curr, sourceKeys, sourceLinks)
+	req, err := f.reqBySource(source, sourceKeys, sourceLinks)
 	if err != nil {
 		return body, err
 	}

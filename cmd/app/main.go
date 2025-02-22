@@ -31,7 +31,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const ver = "3"
+const ver = "4"
 
 func main() {
 	AppConfig := config.NewAppConfig()
@@ -61,6 +61,7 @@ func main() {
 	go APIHandler.StartUpdate(AppConfig, mainCtx)
 	// Запуск сервера
 	go func() {
+		log.Println("Starting server")
 		err := httpServer.ListenAndServe()
 		//Если произошла ошибка при включении
 		if !errors.Is(err, http.ErrServerClosed) && err != nil {
@@ -70,13 +71,15 @@ func main() {
 	}()
 	//Выключение сервера
 	g.Go(func() error {
-		//Если в канал контекста послан сигнал Sigterm
+		//Ожидаем сигнал Sigterm
 		<-mainCtx.Done()
-		// Посылаем сигнал к бд
+		//Производим отключение с таймаутом
 		log.Printf("Gracefully stopping server")
 		shutdown_ctx, cancel := context.WithCancel(mainCtx)
 		defer cancel()
 		httpServer.Shutdown(shutdown_ctx)
+		log.Printf("Server stopped")
+		// Посылаем сигнал к бд
 		stop_db <- true
 		return http.ErrServerClosed
 	})
@@ -84,13 +87,13 @@ func main() {
 	go func() error {
 		for {
 			for range stop_db {
-				log.Printf("Gracefully stopping database")
+				log.Printf("Closing connect with DB")
 				return APIHandler.ExitConnectWithDb(mainCtx)
 			}
 		}
 	}()
 	if err := g.Wait(); err != nil {
-		log.Printf("exit reason: %s", err)
+		log.Printf("Service stopped")
 	}
 
 }

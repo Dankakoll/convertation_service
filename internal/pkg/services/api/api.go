@@ -35,7 +35,7 @@ type ParseService interface {
 	// Возвращает ненулевую ошибку если тело пусто или такого источника нет
 	Parse(source string, body []byte) (interface{}, error)
 	//ПРиведение к модели, которая воспринимается бд
-	ParseCurrtoDTO(newCurr interface{}, source string) (dom []domain.CurrModel, err error)
+	ParseCurrstoDTO(newCurr interface{}, source string) (dom []domain.CurrModel, err error)
 }
 
 // Хендлер парсеров тел источника
@@ -46,7 +46,7 @@ type ParseHandler struct {
 type FetcherService interface {
 	// GetCurrfromSource отправляет GET-запрос по ссылке для конкретного источника и конкретной валюты (если нужно, добавить ключи доступа).
 	// Возвращает ненулевую ошибку при получении статуса запроса не OK
-	GetCurrfromSource(source string, curr string, sourceKeys map[string]string, sourceLinks map[string]string) (body []byte, err error)
+	FetchAllfromSource(source string, sourceKeys map[string]string, sourceLinks map[string]string) (body []byte, err error)
 }
 
 // Хендлер запросов по ссылкам источника
@@ -112,56 +112,28 @@ func (a *API) initParseHandler(source string) (Parser *ParseHandler, err error) 
 func (a *API) UpdateAllInSource(source string, timeLoc *time.Location, timeToUpdate time.Time) (err error) {
 	//Поиск данных, нахождение ненулевой даты последнего обновления, парсинг и запись в бд
 	defaultMessage := "When updating all currencys error occured in method %s. Error: %s"
-	//Поиск данных
-	var DBDTO []domain.CurrModel
-	DBDTO, err = a.DatabaseHandler.Service.GetAllBySource(a.mainCtx, source)
+	//Ищем самое последнее обновление
+	err = a.FetchAndUpdateCurrs(source, time.Now().In(timeLoc).AddDate(0, 0, -1))
 	if err != nil {
-		logger.Printf(defaultMessage, "DatabaseService.GetAllBySource", err.Error())
+		logger.Println(defaultMessage, "FetchAndUpdateCurrs", err.Error())
 		return err
-	}
-
-	//Поиск ненулевой даты для сверки на обновление ( на случай ошибки в бд)
-	//Если не нашли, то берем предыдущий день
-	var currTime time.Time
-	for _, v := range DBDTO {
-		if len(v.Date) != 0 {
-			currTime, err = time.Parse(time.DateOnly, v.Date)
-			if err != nil {
-
-				return err
-			}
-			break
-		}
-	}
-	//Если даты нет
-	if currTime.Year() == 0 {
-		currTime = time.Now().In(timeLoc).AddDate(0, 0, -1)
-	}
-
-	//Обновление всех данных
-	for _, v := range DBDTO {
-		err = a.NewOrUpdateCurr(source, v.Code, currTime)
-		if err != nil {
-			logger.Printf(defaultMessage, "API.NewOrUpdateCurr", err.Error())
-			return err
-		}
-
 	}
 	return nil
 }
 
 // Для метода update. Ищет и возращает время самой неактуальной записи в бд по источнику
 func (a *API) GetDateFromSource(source string) (init_date time.Time, err error) {
+	defaultMessage := "GetDateFromSource: "
 	getAllAns, err := a.DatabaseHandler.Service.GetAllBySource(a.mainCtx, source)
 	if err != nil {
-		logger.Printf("Internal db error")
+		logger.Println(defaultMessage + "Internal db error. Err:" + err.Error())
 		return init_date, err
 	}
 	init_date = time.Now()
 	for _, c := range getAllAns {
 		parsedDate, err := time.Parse(time.DateOnly, c.Date)
 		if err != nil {
-			logger.Printf("Failed to parse date")
+			logger.Println(defaultMessage + "Failed to parse date: " + c.Date)
 			return init_date, err
 		}
 		if parsedDate.Before(init_date) {
@@ -176,7 +148,8 @@ func (a *API) GetDateFromSource(source string) (init_date time.Time, err error) 
 // Или обновление уже существующих валют
 // Возвращает ошибку если нет тела ответа, как правило при статусе не OK
 // или нарушена целостность данных (например, когда структура ответа пуста)
-func (a *API) NewOrUpdateCurr(source string, curr string, currencyDate time.Time) (err error) {
+func (a *API) FetchAndUpdateCurrs(source string, currencyDate time.Time) (err error) {
+	defaultMessage := "FetchAndUpdateCurrs: "
 	//Cначала идет инициализация запросов,
 	//затем получение информации из источника, затем парсинг и запись в бд данных
 
@@ -186,9 +159,9 @@ func (a *API) NewOrUpdateCurr(source string, curr string, currencyDate time.Time
 		return err
 	}
 	//Сервис отправки запросов
-	GetFetcher := Fetcher{fetcher.NewFetcher(currencyDate, a.timeLoc, a.timeout)}
+	GetFetcher := &Fetcher{fetcher.NewFetcher(currencyDate, a.timeLoc, a.timeout)}
 	//Получение тела ответа
-	body, err := GetFetcher.Service.GetCurrfromSource(source, curr, a.sourceKeys, a.sourceLinks)
+	body, err := GetFetcher.Service.FetchAllfromSource(source, a.sourceKeys, a.sourceLinks)
 	if err != nil {
 		return err
 	}
@@ -197,14 +170,14 @@ func (a *API) NewOrUpdateCurr(source string, curr string, currencyDate time.Time
 	if err != nil {
 		return err
 	}
-	dto, err := ParseHandler.Service.ParseCurrtoDTO(newCurr, source)
+	dto, err := ParseHandler.Service.ParseCurrstoDTO(newCurr, source)
 	if err != nil {
 		return err
 	}
 	for _, i := range dto {
 		err = a.DatabaseHandler.Service.Store(a.mainCtx, i)
 		if err != nil {
-			logger.Println("Error adding to db. Error:" + err.Error())
+			logger.Println(defaultMessage + "Error adding data to db. Error:" + err.Error())
 			return errors.New("cannot add data to db now")
 		}
 	}
@@ -238,6 +211,7 @@ func (a *API) checkQuery(first string, second string, amount string, exchange st
 // Возвращает ошибку метода NewOrUpdateCurr, если произошла ошибка поиска валюты в источнике
 // или базы данных, если нет связи с бд или произошло непреднамеренное отключение
 func (a *API) checkNameFromSource(source string, name string, exchange string) (nameModel domain.CurrModel, nameRatio float64, err error) {
+	defaultMessage := "checkNameFromSource :"
 	//Проверка на курс источника
 	if strings.Contains(name, source) {
 		date := time.Now().Format(time.DateOnly)
@@ -248,7 +222,6 @@ func (a *API) checkNameFromSource(source string, name string, exchange string) (
 		case SourceCurrNameTH:
 			currname = SourceCurrNameTH
 		default:
-			logger.Print("Wrong currency name")
 			err = errors.New("wrong currency name" + name)
 			return domain.CurrModel{}, 1, err
 		}
@@ -258,52 +231,29 @@ func (a *API) checkNameFromSource(source string, name string, exchange string) (
 	//Поиск записи
 	nameModel, err = a.DatabaseHandler.Service.GetBySourceAndKey(a.mainCtx, source, name)
 	if err != nil {
-		return domain.CurrModel{}, 1, err
-	}
-	// Поиск записи в неподдерживаемых валютах
-	unsupNameModel, err := a.DatabaseHandler.Service.GetBySourceAndKey(a.mainCtx, "UNSUP"+source, name)
-	if err != nil {
+		logger.Printf("%sCannot get %s model in source %s from DB . Check err: %e", defaultMessage, name, source, err)
 		return domain.CurrModel{}, 1, err
 	}
 	//Если нет
-	if len(unsupNameModel.Name) != 0 {
-		return domain.CurrModel{}, 1, errors.New("unsupported currency " + name + " for source " + source)
-	} else if len(nameModel.Name) == 0 {
-		checkInDefSource, err := a.DatabaseHandler.Service.GetBySourceAndKey(a.mainCtx, defaultSource, name)
-		if err != nil {
-			return domain.CurrModel{}, 1, err
-		}
-		if (len(checkInDefSource.Name)) == 0 {
-			//Если в списке источника ЦБ РФ нет
-			logger.Printf("Wrong currency name")
-			return domain.CurrModel{}, 1, errors.New("wrong currency name " + name)
-		} else {
-			//Добавление новой валюты
-			err = a.NewOrUpdateCurr(source, name, time.Now())
-			if err != nil {
-				if err.Error() == "Invalid Currency" {
-					a.DatabaseHandler.Service.Store(a.mainCtx, domain.ToCurrModel("", "UNSUP"+source, name, "Unsupported", "", ""))
-				}
-				logger.Printf("Cannot find data for this curr %s. Error: %e", name, err)
-				return domain.CurrModel{}, 1, err
-			}
-		}
+	if len(nameModel.Name) == 0 {
+		logger.Printf("%sWrong or lost currency %s in source %s ", defaultMessage, name, source)
+		return domain.CurrModel{}, 1, errors.New("this currency " + name + " is unsupported or invalid for source " + source + ".")
 	}
 	switch exchange {
 	case "buy":
 		{
 			nameRatio, err = strconv.ParseFloat(strings.Replace(nameModel.RatioBuy, ",", ".", 1), 64)
 			if err != nil {
-				logger.Printf("Lost value for currency %s. Check connect with client or integrity of DB", name)
-				return domain.CurrModel{}, 1, err
+				logger.Printf("%sLost value for currency %s. Check connect with client or integrity of DB. Error : %e ", defaultMessage, name, err)
+				return domain.CurrModel{}, 1, errors.New("lost value for currency " + name + " check again later")
 			}
 		}
 	case "sell":
 		{
 			nameRatio, err = strconv.ParseFloat(strings.Replace(nameModel.RatioSell, ",", ".", 1), 64)
 			if err != nil {
-				logger.Printf("Lost value for currency %s. Check connect with client or integrity of DB", name)
-				return domain.CurrModel{}, 1, err
+				logger.Printf("%sLost value for currency %s. Check connect with client or integrity of DB. Error: %e", defaultMessage, name, err)
+				return domain.CurrModel{}, 1, errors.New("lost value for currency " + name + "check again later")
 			}
 		}
 	}
@@ -325,8 +275,7 @@ type ConvertResponse struct {
 // при выбранном курсе перевода ( продажа/покупка), выводит тело ответа с данными о валютах и переведенном номинале
 // Возвращает ошибку если неправильно введены параметры или проблема с бд
 func (a *API) Convert(source string, first string, second string, amount string, exchange string) (data interface{}, err error) {
-	defaultMessage := "In Convert error occured in method %s. Error: %s"
-	defaulterr := errors.New("cannot provide now convert. try again later")
+	defaultMessage := "In Convert error occured in method %s. Check logs"
 	//Проверка на правильность ввода
 	err = a.checkQuery(first, second, amount, exchange)
 	if err != nil {
@@ -334,13 +283,13 @@ func (a *API) Convert(source string, first string, second string, amount string,
 	}
 	firstDTO, firstRatio, err := a.checkNameFromSource(source, first, exchange)
 	if err != nil {
-		logger.Printf(defaultMessage, "API.checkNameFromSource", err.Error())
-		return nil, defaulterr
+		logger.Printf(defaultMessage, "checkNameFromSource")
+		return nil, err
 	}
 	secondDTO, secondRatio, err := a.checkNameFromSource(source, second, exchange)
 	if err != nil {
-		logger.Printf(defaultMessage, "API.checkNameFromSource", err.Error())
-		return nil, defaulterr
+		logger.Printf(defaultMessage, "checkNameFromSource")
+		return nil, err
 	}
 	amountParsed, err := strconv.ParseFloat(strings.Replace(amount, ",", ".", 1), 64)
 	if err != nil {
@@ -356,24 +305,23 @@ func (a *API) Convert(source string, first string, second string, amount string,
 	res.Second = secondDTO.Code
 	res.Exchange = exchange
 	res.Amount = amount
-	res.ConvertedAmount = strconv.FormatFloat(convertedAmount, 'f', 3, 64)
+	res.ConvertedAmount = strconv.FormatFloat(convertedAmount, 'f', 12, 64)
 
 	return res, nil
 }
 
 // Метод  реализует запрос '/getAll'. Достает из бд данные о валютах источника. Возвращает ошибку если потеряно соединене с бд после 5 попыток
 func (a *API) GetAll(source string) (ans []domain.CurrModel, err error) {
-
+	defaultMessage := "GetAll: "
 	if len(source) == 0 {
 		source = defaultSource
 	}
 	sourceDTOs, err := a.DatabaseHandler.Service.GetAllBySource(a.mainCtx, source)
 	if err != nil {
-		logger.Printf("Check logs for DB. Error:%e", err)
+		logger.Printf(defaultMessage+"Check logs for DB. Error:%e", err)
 		return nil, errors.New("when requesting  data from database error occured. Try again later")
 	}
 	if (len(sourceDTOs)) == 0 {
-		logger.Printf("Wrong source provided "+source, err)
 		return nil, errors.New("wrong source provided")
 	}
 	return sourceDTOs, nil

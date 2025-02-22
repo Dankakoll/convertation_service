@@ -106,7 +106,6 @@ func (ah *APIHandler) StartUpdate(AppConfig *config.AppConfig, mainCtx context.C
 
 // Горутина для отслеживания соединения с бд
 func (ah *APIHandler) ExitConnectWithDb(mainCtx context.Context) error {
-	logger.Print("Gracefully stopping ExitConnectWithDb")
 	return ah.Service.ExitConnectWithDb(mainCtx)
 }
 
@@ -189,11 +188,11 @@ func (ah *APIHandler) greet(w http.ResponseWriter, r *http.Request) {
 
 // Периодическое обновление данных
 func (ah *APIHandler) update(locTime *time.Location, timeInDay map[string]time.Time, sources []string, ctx context.Context) (err error) {
+	defaultMessage := "Update: "
 	select {
 	case <-ctx.Done():
-		logger.Print("Update: Gracefully stopping")
-		err = errors.New("exiting service")
-		return err
+		logger.Print(defaultMessage + "Shutdowning gorotine")
+		return errors.New("exiting update")
 	default:
 		//Флаг на обновленность( чтобы каждый раз запросы не делались на сервера источника)
 		updatedSources := make([]bool, len(timeInDay))
@@ -203,7 +202,7 @@ func (ah *APIHandler) update(locTime *time.Location, timeInDay map[string]time.T
 			init_date, err := ah.Service.GetDateFromSource(i)
 			logger.Printf("last date %s", init_date.Format(time.DateOnly))
 			if err != nil {
-				logger.Printf("%s", "Update: Cannot update in source "+i+". Will try again later Error:"+err.Error())
+				logger.Printf("%s", defaultMessage+"Cannot update in source "+i+". Will try again later Error:"+err.Error())
 				updatedSources[k] = false
 			}
 			//Eсли настал новый день
@@ -217,16 +216,16 @@ func (ah *APIHandler) update(locTime *time.Location, timeInDay map[string]time.T
 			//При запуске обновляется, потом проверка на время обновления
 			if t.Before(timeForUpdate) || (updatedSources[k] && t.After(timeForUpdate)) || isWeekend || err != nil {
 				//Не настало время обновления или произошла ошибка при получении данных
-				logger.Printf("%s", "Update : Currently no updates available for source "+i)
+				logger.Printf("%s", defaultMessage+"Currently no updates available for source "+i)
 			} else if !updatedSources[k] {
 				//Обновление
-				logger.Printf("%s", "Update: Starting to update data for source "+i)
+				logger.Printf("%s", defaultMessage+"Starting to update data for source "+i)
 				err := ah.Service.UpdateAllInSource(i, locTime, timeForUpdate)
 				if err != nil {
-					logger.Printf("%s", "Update: Cannot update in source "+i+". Will try again later Error:"+err.Error())
+					logger.Printf("%s", defaultMessage+"Cannot update in source "+i+". Will try again later Error:"+err.Error())
 					updatedSources[k] = false
 				} else {
-					logger.Printf("%s", "Update: Succsessfully updated data for source "+i)
+					logger.Printf("%s", defaultMessage+"Succsessfully updated data for source "+i)
 					updatedSources[k] = true
 				}
 			}
@@ -254,11 +253,12 @@ func (ah *APIHandler) UpdatingSources(timeWait int, locTime *time.Location, time
 			if err != nil {
 				return err
 			}
+		//На случай завершения обновления и получения сигнала SIGTERM. Бизнес-логика завершится и
+		//горутина закроется без гонки
 		case <-ctx.Done():
 			//Graceful shutdown
 			logger.Print("Gracefully stopping Update")
-			err = errors.New("exiting service")
-			return err
+			return errors.New("update stopped")
 
 		}
 	}
